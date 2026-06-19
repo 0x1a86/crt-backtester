@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,7 +144,7 @@ cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
   <div class="empty">
     <div class="ei">◈</div>
     <div class="et">HTF CRT → Daily Level Entry</div>
-    <div class="es">Monthly → Weekly → Daily cascade · FVG midpoint entry · HTF wick stop</div>
+    <div class="es">Quarterly → Monthly → Weekly → Daily cascade · FVG midpoint entry · HTF wick stop</div>
   </div>
 </main>
 </div>
@@ -221,10 +220,10 @@ function nearestFVG(fvgs,level,dir,beforeTs,candles){
   return{...fvg,tested};
 }
 
-// ── Dominant HTF CRT: Monthly > Weekly > Daily
+// ── Dominant HTF CRT: Quarterly > Monthly > Weekly > Daily
 // Returns the highest TF CRT active at a given timestamp
 function dominantCRT(ts, data){
-  const order=['1M','1w','1d'];
+  const order=['3M','1M','1w','1d'];
   for(const tf of order){
     if(!data[tf]) continue;
     const arr=data[tf];
@@ -312,10 +311,26 @@ async function run(){
 
     // ── Fetch all timeframes
     const data={};
-    for(const [tf,lim] of [['3M',40],['1M',120],['1w',200],['1d',dailyLimit]]){
+    for(const [tf,lim] of [['1M',120],['1w',200],['1d',dailyLimit]]){
       setS('loading',`Fetching ${tf}…`);
       data[tf]=await fetch0(sym,tf,lim);
     }
+    // Build quarterly candles from monthly (group every 3 months)
+    setS('loading','Building quarterly candles from monthly…');
+    const quarterly=[];
+    const monthly=data['1M'];
+    for(let i=0;i+2<monthly.length;i+=3){
+      const slice=monthly.slice(i,i+3);
+      quarterly.push({
+        ts:slice[0].ts,
+        o:slice[0].o,
+        h:Math.max(...slice.map(c=>c.h)),
+        l:Math.min(...slice.map(c=>c.l)),
+        c:slice[slice.length-1].c,
+        v:slice.reduce((s,c)=>s+c.v,0)
+      });
+    }
+    data['3M']=quarterly;
     setS('loading',`Fetching ${entryTf} entry candles…`);
     const entryCandles=await fetch0(sym,entryTf,entryLimit);
 
@@ -667,12 +682,3 @@ function st(n){
 </script>
 </body>
 </html>
-HTMLEOF
-echo "Done"
-Output
-
-Done
-Done
-
-You are out of free messages until 12:20 AM
-
