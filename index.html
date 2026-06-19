@@ -449,12 +449,12 @@ async function run() {
       // ── Entry: 50% of the FVG midpoint
       const entry=fvg.mid;
 
-      // ── Stop: at the high of the FVG (bullish) or low of the FVG (bearish)
-      // Entry is at FVG midpoint, stop is at the FVG extreme
-      // This keeps stop tight within the FVG itself while surviving multiple touches
+      // ── Stop: beyond the HTF manipulation wick extreme + 0.1% buffer
+      // Placed beyond the full HTF wick to survive multiple touches before delivery
+      const wickBuffer=manipLevel*0.001;
       const stopLevel=crtDir==='BULL'
-        ? fvg.top    // stop at the top of the bullish FVG
-        : fvg.bottom; // stop at the bottom of the bearish FVG
+        ? cur.low  - wickBuffer   // below the HTF wick low
+        : cur.high + wickBuffer;  // above the HTF wick high
 
       const stopDist=Math.abs(entry-stopLevel);
       if(stopDist<=0) continue;
@@ -724,7 +724,7 @@ function renderResults(results, symbol, htfTf, entryTf) {
             <tr>
               <th>HTF Date</th><th>Soup Date</th><th>Dir</th><th>CRT</th><th>Seq</th>
               <th>FVG</th><th>Session</th><th>DoW</th><th>WoM</th><th>Score</th>
-              <th>Entry (FVG 50%)</th><th>Stop (FVG High)</th><th>RR 50%</th><th>RR Full</th><th>Delivery</th><th>Outcome</th>
+              <th>Entry (FVG 50%)</th><th>Stop (HTF Wick)</th><th>RR 50%</th><th>RR Full</th><th>Delivery</th><th>Outcome</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
