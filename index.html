@@ -145,7 +145,7 @@ cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
   <div class="empty">
     <div class="ei">◈</div>
     <div class="et">HTF CRT → Daily Level Entry</div>
-    <div class="es">Quarterly → Monthly → Weekly → Daily cascade · FVG midpoint entry · HTF wick stop</div>
+    <div class="es">Monthly → Weekly → Daily cascade · FVG midpoint entry · HTF wick stop</div>
   </div>
 </main>
 </div>
@@ -221,10 +221,10 @@ function nearestFVG(fvgs,level,dir,beforeTs,candles){
   return{...fvg,tested};
 }
 
-// ── Dominant HTF CRT: Quarterly > Monthly > Weekly > Daily
+// ── Dominant HTF CRT: Monthly > Weekly > Daily
 // Returns the highest TF CRT active at a given timestamp
 function dominantCRT(ts, data){
-  const order=['3M','1M','1w','1d'];
+  const order=['1M','1w','1d'];
   for(const tf of order){
     if(!data[tf]) continue;
     const arr=data[tf];
