@@ -5,105 +5,100 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>CRT Backtester</title>
 <style>
-  :root {
-    --bg:#0a0a0f;--surface:#111118;--border:#1e1e2e;--bb:#2a2a3e;
-    --text:#e2e2f0;--muted:#6b6b8a;--bull:#00c896;--bear:#ff4d6d;
-    --wick:#f0b429;--accent:#7c6fff;--dim:rgba(124,111,255,0.12);
-    --font-mono:'SF Mono','Fira Code','Consolas',monospace;
-    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  :root{
+    --bg:#0a0a0f;--sf:#111118;--bd:#1e1e2e;--bb:#2a2a3e;
+    --tx:#e2e2f0;--mt:#6b6b8a;--bull:#00c896;--bear:#ff4d6d;
+    --wk:#f0b429;--ac:#7c6fff;--dm:rgba(124,111,255,0.12);
+    --mono:'SF Mono','Fira Code','Consolas',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased;}
-  header{border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
-  header h1{font-size:15px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);}
-  header span{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
+  body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased;}
+  header{border-bottom:1px solid var(--bd);padding:16px 20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  header h1{font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ac);}
+  header span{font-size:11px;color:var(--mt);font-family:var(--mono);}
   .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 53px);}
-  aside{border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
-  .fl{display:block;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-  .fh{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5;}
-  select,input[type=number]{width:100%;background:var(--surface);border:1px solid var(--bb);border-radius:6px;color:var(--text);font-family:var(--font-mono);font-size:13px;padding:8px 10px;outline:none;appearance:none;-webkit-appearance:none;}
-  select:focus,input:focus{border-color:var(--accent);}
-  .run-btn{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:auto;transition:opacity 0.15s,transform 0.1s;}
-  .run-btn:active{transform:scale(0.98);opacity:0.85;}
-  .run-btn:disabled{opacity:0.4;cursor:not-allowed;}
+  aside{border-right:1px solid var(--bd);padding:20px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+  .fl{display:block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mt);margin-bottom:5px;}
+  .fh{font-size:10px;color:var(--mt);margin-top:4px;line-height:1.5;}
+  select,input[type=number]{width:100%;background:var(--sf);border:1px solid var(--bb);border-radius:6px;color:var(--tx);font-family:var(--mono);font-size:13px;padding:8px 10px;outline:none;appearance:none;-webkit-appearance:none;}
+  select:focus,input:focus{border-color:var(--ac);}
+  .run-btn{width:100%;padding:11px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:auto;transition:opacity .15s,transform .1s;}
+  .run-btn:active{transform:scale(.98);opacity:.85;}
+  .run-btn:disabled{opacity:.4;cursor:not-allowed;}
   main{padding:20px;display:flex;flex-direction:column;gap:20px;overflow-x:hidden;}
-  .status{font-family:var(--font-mono);font-size:12px;color:var(--muted);}
-  .status.loading{color:var(--accent);}
-  .status.error{color:var(--bear);}
-  .status.done{color:var(--bull);}
-  .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);}
-  .tab{padding:8px 16px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;white-space:nowrap;}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .status{font-family:var(--mono);font-size:12px;color:var(--mt);}
+  .status.loading{color:var(--ac);}.status.error{color:var(--bear);}.status.done{color:var(--bull);}
+  .tabs{display:flex;border-bottom:1px solid var(--bd);}
+  .tab{padding:8px 14px;font-size:12px;font-weight:600;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+  .tab.active{color:var(--ac);border-bottom-color:var(--ac);}
   .tc{display:none;flex-direction:column;gap:20px;}
   .tc.active{display:flex;}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
-  .cl{font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
-  .cv{font-size:20px;font-weight:700;font-family:var(--font-mono);line-height:1;}
-  .cs{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--font-mono);}
-  .bull{color:var(--bull);}.bear{color:var(--bear);}.wc{color:var(--wick);}.ac{color:var(--accent);}
-  .st{font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px;}
-  .tg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  .tb{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;}
-  .tt{font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:10px;}
+  .card{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;}
+  .cl{font-size:10px;color:var(--mt);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+  .cv{font-size:20px;font-weight:700;font-family:var(--mono);line-height:1;}
+  .cs{font-size:11px;color:var(--mt);margin-top:4px;font-family:var(--mono);}
+  .bull{color:var(--bull);}.bear{color:var(--bear);}.wc{color:var(--wk);}.ac{color:var(--ac);}
+  .st{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mt);border-bottom:1px solid var(--bd);padding-bottom:8px;margin-bottom:12px;}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .tb{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:12px;}
+  .tt{font-size:10px;color:var(--mt);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
   .br{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-  .bl{font-family:var(--font-mono);font-size:11px;color:var(--muted);width:44px;flex-shrink:0;}
-  .btr{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-  .bf{height:100%;border-radius:2px;background:var(--accent);}
-  .bc{font-family:var(--font-mono);font-size:11px;color:var(--text);width:24px;text-align:right;flex-shrink:0;}
-  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;}
-  table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px;white-space:nowrap;}
-  thead tr{background:var(--surface);border-bottom:1px solid var(--border);}
-  th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
-  td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+  .bl{font-family:var(--mono);font-size:11px;color:var(--mt);width:44px;flex-shrink:0;}
+  .btr{flex:1;height:4px;background:var(--bd);border-radius:2px;overflow:hidden;}
+  .bf{height:100%;border-radius:2px;background:var(--ac);}
+  .bc{font-family:var(--mono);font-size:11px;color:var(--tx);width:24px;text-align:right;flex-shrink:0;}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--bd);border-radius:8px;}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;white-space:nowrap;}
+  thead tr{background:var(--sf);border-bottom:1px solid var(--bd);}
+  th{padding:9px 11px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mt);}
+  td{padding:7px 11px;border-bottom:1px solid var(--bd);color:var(--tx);}
   tbody tr:last-child td{border-bottom:none;}
-  tbody tr:hover{background:rgba(124,111,255,0.04);}
+  tbody tr:hover{background:rgba(124,111,255,.04);}
   .tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;}
-  .tbull{background:rgba(0,200,150,0.12);color:var(--bull);}
-  .tbear{background:rgba(255,77,109,0.12);color:var(--bear);}
-  .twick{background:rgba(240,180,41,0.12);color:var(--wick);}
-  .tclose{background:rgba(124,111,255,0.12);color:var(--accent);}
-  .tdel{background:rgba(0,200,150,0.12);color:var(--bull);}
-  .tpar{background:rgba(240,180,41,0.12);color:var(--wick);}
-  .tmis{background:rgba(255,77,109,0.12);color:var(--bear);}
-  .tstop{background:rgba(255,77,109,0.08);color:#ff8099;}
-  .t3m{background:rgba(255,100,100,0.12);color:#ff8080;}
-  .t1m{background:rgba(240,180,41,0.12);color:var(--wick);}
-  .t1w{background:rgba(124,111,255,0.12);color:var(--accent);}
-  .t1d{background:rgba(0,200,150,0.12);color:var(--bull);}
+  .tbull{background:rgba(0,200,150,.12);color:var(--bull);}
+  .tbear{background:rgba(255,77,109,.12);color:var(--bear);}
+  .twk{background:rgba(240,180,41,.12);color:var(--wk);}
+  .tcl{background:rgba(124,111,255,.12);color:var(--ac);}
+  .tdel{background:rgba(0,200,150,.12);color:var(--bull);}
+  .tpar{background:rgba(240,180,41,.12);color:var(--wk);}
+  .tstop{background:rgba(255,77,109,.08);color:#ff8099;}
+  .tmis{background:rgba(107,107,138,.15);color:var(--mt);}
+  .tfvg{background:rgba(124,111,255,.15);color:#a89fff;}
+  .tob{background:rgba(240,180,41,.15);color:#f0c070;}
+  .traw{background:rgba(0,200,150,.08);color:#80e0c0;}
+  .t1m{background:rgba(240,180,41,.12);color:var(--wk);}
+  .t1w{background:rgba(124,111,255,.12);color:var(--ac);}
+  .t1d{background:rgba(0,200,150,.12);color:var(--bull);}
   .db{display:flex;align-items:center;gap:6px;}
   .dp{font-size:11px;width:34px;}
-  .mb{width:50px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .mb{width:50px;height:3px;background:var(--bd);border-radius:2px;overflow:hidden;}
   .mf{height:100%;border-radius:2px;}
-  .ig{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-  .ib{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
-  .it{font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;}
-  .ir{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .ib{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:14px;}
+  .it{font-size:10px;color:var(--mt);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+  .ir{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--bd);}
   .ir:last-child{border-bottom:none;}
-  .il{color:var(--muted);}
-  .iv{font-family:var(--font-mono);font-weight:600;}
-  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);gap:10px;text-align:center;}
-  .ei{font-size:32px;opacity:0.3;}
-  .et{font-size:13px;}
-  .es{font-size:11px;opacity:0.6;}
+  .il{color:var(--mt);}.iv{font-family:var(--mono);font-weight:600;}
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--mt);gap:10px;text-align:center;}
   @media(max-width:700px){
     .layout{grid-template-columns:1fr;}
-    aside{border-right:none;border-bottom:1px solid var(--border);}
-    .tg{grid-template-columns:repeat(2,1fr);}
+    aside{border-right:none;border-bottom:1px solid var(--bd);}
+    .g4{grid-template-columns:repeat(2,1fr);}
+    .g2{grid-template-columns:1fr;}
     .cards{grid-template-columns:repeat(2,1fr);}
-    .ig{grid-template-columns:1fr;}
   }
 </style>
 </head>
 <body>
 <header>
   <h1>CRT Backtester</h1>
-  <span>HTF CRT · Daily Level Entries · Cascading Targets · 0x1a86</span>
+  <span>HTF CRT · FVG · OB · Turtle Soup · 0x1a86</span>
 </header>
 <div class="layout">
 <aside>
-  <div>
-    <label class="fl">Symbol</label>
+  <div><label class="fl">Symbol</label>
     <select id="sym">
       <option value="BTCUSDT">BTC/USDT</option>
       <option value="ETHUSDT">ETH/USDT</option>
@@ -112,52 +107,40 @@
       <option value="XRPUSDT">XRP/USDT</option>
     </select>
   </div>
-  <div>
-    <label class="fl">Entry Timeframe</label>
-    <select id="entryTf">
-      <option value="1h">1 Hour</option>
-      <option value="4h">4 Hour</option>
-    </select>
-    <div class="fh">Session candle for FVG entry detection</div>
+  <div><label class="fl">Entry TF</label>
+    <select id="etf"><option value="1h">1 Hour</option><option value="4h">4 Hour</option></select>
+    <div class="fh">Session candle for entry detection</div>
   </div>
-  <div>
-    <label class="fl">Daily Candles</label>
-    <input type="number" id="dailyLimit" value="500" min="100" max="1000" step="100">
+  <div><label class="fl">Daily Candles</label><input type="number" id="dlim" value="500" min="100" max="1000" step="100"></div>
+  <div><label class="fl">Entry TF Candles</label><input type="number" id="elim" value="2000" min="500" max="5000" step="500"></div>
+  <div><label class="fl">Entry Window (days)</label>
+    <input type="number" id="ewin" value="7" min="1" max="30" step="1">
+    <div class="fh">Days after HTF CRT to search for entry</div>
   </div>
-  <div>
-    <label class="fl">Entry TF Candles</label>
-    <input type="number" id="entryLimit" value="2000" min="500" max="5000" step="500">
+  <div><label class="fl">Max Capital Loss %</label>
+    <input type="number" id="capLoss" value="5" min="1" max="20" step="1">
+    <div class="fh">SL sized by capital risk, not wick distance</div>
   </div>
-  <div>
-    <label class="fl">Entry Window (days)</label>
-    <input type="number" id="entryWindow" value="5" min="1" max="20" step="1">
-    <div class="fh">Days after HTF CRT to look for daily level entry</div>
-  </div>
-  <div>
-    <label class="fl">Min Delivery %</label>
-    <input type="number" id="minDel" value="75" min="0" max="100" step="5">
-  </div>
+  <div><label class="fl">Min Delivery %</label><input type="number" id="mdel" value="50" min="0" max="100" step="5"></div>
   <button class="run-btn" id="runBtn" onclick="run()">Run Backtest</button>
 </aside>
-
 <main id="main">
   <div class="empty">
-    <div class="ei">◈</div>
-    <div class="et">HTF CRT → Daily Level Entry</div>
-    <div class="es">Quarterly → Monthly → Weekly → Daily cascade · FVG midpoint entry · HTF wick stop</div>
+    <div style="font-size:32px;opacity:.3">◈</div>
+    <div style="font-size:13px">HTF CRT → FVG / OB / Raw Level Entry</div>
+    <div style="font-size:11px;opacity:.6">Monthly dominates · Any TF level valid · 5% capital SL</div>
   </div>
 </main>
 </div>
-
 <script>
-// ── Fetch Binance OHLCV
-async function fetch0(symbol,tf,limit){
-  const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${tf}&limit=${limit}`;
-  let res;
-  try{res=await fetch(url);if(!res.ok)throw 0;}
-  catch{res=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);}
-  if(!res.ok)throw new Error(`Binance ${res.status}`);
-  const d=await res.json();
+// ── Fetch Binance
+async function fetch0(sym,tf,lim){
+  const url=`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${tf}&limit=${lim}`;
+  let r;
+  try{r=await fetch(url);if(!r.ok)throw 0;}
+  catch{r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);}
+  if(!r.ok)throw new Error(`Binance ${r.status}`);
+  const d=await r.json();
   return d.map(c=>({ts:+c[0],o:+c[1],h:+c[2],l:+c[3],c:+c[4],v:+c[5]}));
 }
 
@@ -167,36 +150,42 @@ function tctx(ts){
   const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()];
   const wom=day<=7?'W1':day<=14?'W2':day<=21?'W3':day<=28?'W4':'W5';
   const moy=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()];
-  let session='Asia';
-  if(h>=7&&h<12)session='London';
-  else if(h>=12&&h<20)session='New York';
-  else if(h>=20)session='Late NY';
-  return{session,dow,wom,moy};
+  let ses='Asia';
+  if(h>=7&&h<12)ses='London';
+  else if(h>=12&&h<20)ses='New York';
+  else if(h>=20)ses='Late NY';
+  return{ses,dow,wom,moy};
 }
 
-// ── Detect CRT signal on candle[i] relative to candle[i-1] range
+// ── CRT signal: candle relative to previous candle range
+// Returns {dir,type} or null
 function crtSig(prev,cur){
-  // Wick signals — reversal (higher weight)
-  if(cur.l<prev.l&&cur.c>=prev.l&&cur.c<=prev.h) return{dir:'BULL',type:'wick'};
-  if(cur.h>prev.h&&cur.c<=prev.h&&cur.c>=prev.l) return{dir:'BEAR',type:'wick'};
-  // Close signals — continuation
-  if(cur.c>prev.h) return{dir:'BULL',type:'close'};
-  if(cur.c<prev.l) return{dir:'BEAR',type:'close'};
+  const pH=prev.h,pL=prev.l;
+  // Bearish wick: sweeps above prev high, closes back inside
+  if(cur.h>pH&&cur.c<=pH&&cur.c>=pL) return{dir:'BEAR',type:'wick'};
+  // Bullish wick: sweeps below prev low, closes back inside
+  if(cur.l<pL&&cur.c>=pL&&cur.c<=pH) return{dir:'BULL',type:'wick'};
+  // Bearish close: closes below prev low
+  if(cur.c<pL) return{dir:'BEAR',type:'close'};
+  // Bullish close: closes above prev high
+  if(cur.c>pH) return{dir:'BULL',type:'close'};
   return null;
 }
 
-// ── Detect FVGs in a candle array
+// ── Detect FVGs in candle array
 function detectFVGs(candles){
   const out=[];
   for(let i=1;i<candles.length-1;i++){
-    const a=candles[i-1],b=candles[i],c=candles[i+1];
-    if(a.h<c.l) out.push({type:'bull',ts:b.ts,idx:i,top:c.l,bot:a.h,mid:(c.l+a.h)/2});
-    if(a.l>c.h) out.push({type:'bear',ts:b.ts,idx:i,top:a.l,bot:c.h,mid:(a.l+c.h)/2});
+    const a=candles[i-1],b=candles[i],nx=candles[i+1];
+    // Bullish FVG: gap up (imbalance above — bearish context, price may fill going up)
+    if(a.h<nx.l) out.push({type:'bull',ts:b.ts,idx:i,top:nx.l,bot:a.h,mid:(nx.l+a.h)/2});
+    // Bearish FVG: gap down (imbalance below — bullish context, price may fill going down)
+    if(a.l>nx.h) out.push({type:'bear',ts:b.ts,idx:i,top:a.l,bot:nx.h,mid:(a.l+nx.h)/2});
   }
   return out;
 }
 
-// ── Check if FVG was tested after its formation
+// ── Check if FVG tested after formation
 function fvgTested(fvg,candles){
   for(let i=fvg.idx+2;i<candles.length;i++){
     const c=candles[i];
@@ -206,74 +195,154 @@ function fvgTested(fvg,candles){
   return false;
 }
 
-// ── Get nearest FVG to a price level (same direction as CRT)
-function nearestFVG(fvgs,level,dir,beforeTs,candles){
-  // Bullish CRT: look for bullish FVG above the manipulation low (target validation)
-  // Bearish CRT: look for bearish FVG below the manipulation high
-  const type=dir==='BULL'?'bull':'bear';
-  const rel=fvgs.filter(f=>f.type===type&&f.ts<beforeTs&&
-    (dir==='BULL'?f.bot>=level:f.top<=level));
-  if(!rel.length) return null;
-  rel.sort((a,b)=>Math.abs((dir==='BULL'?a.bot:a.top)-level)-Math.abs((dir==='BULL'?b.bot:b.top)-level));
-  const fvg=rel[0];
-  const tested=fvgTested(fvg,candles);
-  return{...fvg,tested};
+// ── Detect Orderblocks in candle array
+// OB = candle that liquidated a high/low AND is fully engulfed by a subsequent candle
+function detectOBs(candles){
+  const out=[];
+  for(let i=1;i<candles.length;i++){
+    const cur=candles[i];
+    // Bearish OB candidate: candle that took out a high (high > prev high)
+    // then gets engulfed by a subsequent bearish candle
+    if(cur.h>candles[i-1].h){
+      // Look ahead for engulfing candle
+      for(let j=i+1;j<Math.min(i+5,candles.length);j++){
+        const nx=candles[j];
+        // Engulfed: subsequent candle's range fully covers OB candle
+        if(nx.h>=cur.h&&nx.l<=cur.l){
+          // OB type: bearish (liquidated high, now sells)
+          const bodySize=Math.abs(cur.c-cur.o);
+          const wickSize=cur.h-Math.max(cur.o,cur.c);
+          const isLongWick=wickSize>bodySize;
+          // Entry: thick body = high/low midpoint; long wick = wick-to-open 50%
+          const entryPrice=isLongWick
+            ?(cur.h+Math.max(cur.o,cur.c))/2  // wick to open midpoint
+            :(cur.h+cur.l)/2;                  // full range midpoint
+          out.push({type:'bear',ts:cur.ts,idx:i,
+            high:cur.h,low:cur.l,open:cur.o,close:cur.c,
+            isLongWick,entryPrice,engulfIdx:j});
+          break;
+        }
+      }
+    }
+    // Bullish OB candidate: candle that took out a low (low < prev low)
+    // then gets engulfed by a subsequent bullish candle
+    if(cur.l<candles[i-1].l){
+      for(let j=i+1;j<Math.min(i+5,candles.length);j++){
+        const nx=candles[j];
+        if(nx.h>=cur.h&&nx.l<=cur.l){
+          const bodySize=Math.abs(cur.c-cur.o);
+          const wickSize=Math.min(cur.o,cur.c)-cur.l;
+          const isLongWick=wickSize>bodySize;
+          const entryPrice=isLongWick
+            ?(Math.min(cur.o,cur.c)+cur.l)/2   // wick to open midpoint
+            :(cur.h+cur.l)/2;
+          out.push({type:'bull',ts:cur.ts,idx:i,
+            high:cur.h,low:cur.l,open:cur.o,close:cur.c,
+            isLongWick,entryPrice,engulfIdx:j});
+          break;
+        }
+      }
+    }
+  }
+  return out;
 }
 
-// ── Dominant HTF CRT: Quarterly > Monthly > Weekly > Daily
-// Returns the highest TF CRT active at a given timestamp
-function dominantCRT(ts, data){
-  const order=['3M','1M','1w','1d'];
+// ── Get dominant HTF CRT: Monthly → Weekly → Daily
+// Returns the most recent confirmed CRT signal at or before a given timestamp
+function getDominantCRT(ts,data){
+  const order=['1M','1w','1d'];
   for(const tf of order){
     if(!data[tf]) continue;
     const arr=data[tf];
-    // Find most recent completed candle pair at or before ts
+    // Walk backwards to find most recent confirmed CRT
     for(let i=arr.length-1;i>=1;i--){
-      if(arr[i].ts>ts) continue; // candle not yet closed
+      if(arr[i].ts>ts) continue; // not yet closed
       const sig=crtSig(arr[i-1],arr[i]);
-      if(sig){
-        // Time context of the CRT manipulation candle
-        const ctx=tctx(arr[i].ts);
-        return{
-          tf, dir:sig.dir, type:sig.type,
-          crtTs:arr[i].ts,
-          rangeHigh:arr[i-1].h, rangeLow:arr[i-1].l,
-          wickHigh:arr[i].h, wickLow:arr[i].l,
-          // Manipulation level: the wick extreme
-          manipLevel:sig.dir==='BULL'?arr[i-1].l:arr[i-1].h,
-          // Target: opposite range extreme
-          target:sig.dir==='BULL'?arr[i-1].h:arr[i-1].l,
-          // Time of manipulation candle
-          crtSession:ctx.session, crtDow:ctx.dow,
-          crtWom:ctx.wom, crtMoy:ctx.moy,
-        };
-      }
+      if(!sig) continue;
+      const ctx=tctx(arr[i].ts);
+      // Determine manipulation level and target
+      const manipLevel=sig.dir==='BEAR'?arr[i-1].h:arr[i-1].l;
+      const htfTarget =sig.dir==='BEAR'?arr[i-1].l:arr[i-1].h;
+      const rangeSize =arr[i-1].h-arr[i-1].l;
+      const partial50 =sig.dir==='BEAR'
+        ?manipLevel-(rangeSize*0.5)
+        :manipLevel+(rangeSize*0.5);
+      return{
+        tf,dir:sig.dir,type:sig.type,
+        crtTs:arr[i].ts,
+        rangeHigh:arr[i-1].h,rangeLow:arr[i-1].l,
+        wickHigh:arr[i].h,wickLow:arr[i].l,
+        manipLevel,htfTarget,partial50,
+        crtSes:ctx.ses,crtDow:ctx.dow,crtWom:ctx.wom,crtMoy:ctx.moy,
+      };
     }
   }
   return null;
 }
 
+// ── Find best entry at a daily level
+// Priority: OB > FVG > Raw high/low
+// Returns {entryPrice, entryType, fvgData, obData}
+function findEntry(dir,dailyLevel,dailyTs,dailyFVGs,dailyOBs,dailyArr,dailyIdx){
+  // 1. Check for engulfed OB near the daily level
+  // Look for OB candles that formed before this daily signal, near the level
+  const relevantOBs=dailyOBs.filter(ob=>{
+    if(ob.ts>=dailyTs) return false;
+    if(ob.type==='bear'&&dir==='BEAR') return Math.abs(ob.high-dailyLevel)/dailyLevel<0.02;
+    if(ob.type==='bull'&&dir==='BULL') return Math.abs(ob.low-dailyLevel)/dailyLevel<0.02;
+    return false;
+  });
+  if(relevantOBs.length){
+    const ob=relevantOBs[relevantOBs.length-1];
+    return{entryPrice:ob.entryPrice,entryType:'OB',fvg:null,ob};
+  }
+
+  // 2. Check for FVG near/above the daily level
+  // Bearish: FVG above daily high — price expected to reach 50% of FVG before rejecting
+  // Bullish: FVG below daily low — price expected to reach 50% of FVG before bouncing
+  const relevantFVGs=dailyFVGs.filter(fvg=>{
+    if(fvg.ts>=dailyTs) return false;
+    if(dir==='BEAR'&&fvg.type==='bear'){
+      // FVG above or at daily high level
+      return fvg.bot>=dailyLevel*0.99&&fvg.bot<=dailyLevel*1.03;
+    }
+    if(dir==='BULL'&&fvg.type==='bull'){
+      // FVG below or at daily low level
+      return fvg.top<=dailyLevel*1.01&&fvg.top>=dailyLevel*0.97;
+    }
+    return false;
+  });
+  if(relevantFVGs.length){
+    const fvg=relevantFVGs[relevantFVGs.length-1];
+    const tested=fvgTested(fvg,dailyArr);
+    return{entryPrice:fvg.mid,entryType:'FVG',fvg:{...fvg,tested},ob:null};
+  }
+
+  // 3. Raw high/low level
+  return{entryPrice:dailyLevel,entryType:'RAW',fvg:null,ob:null};
+}
+
 // ── Timing score
-function score(crt, entryCtx){
+function calcScore(htf,entryCtx){
   let s=0,m=0;
-  // CRT type weight
-  m+=2; s+=crt.type==='wick'?2:1;
-  // CRT manipulation time
+  // CRT type: wick=2, close=1
+  m+=2;s+=htf.type==='wick'?2:1;
+  // Manipulation timing
   m+=2;
-  if(crt.tf==='1M'||crt.tf==='3M'){
-    if(['W1','W2','W3'].includes(crt.crtWom)) s+=1;
-    if(crt.type==='wick') s+=1;
+  if(htf.tf==='1M'){
+    if(['W1','W2','W3'].includes(htf.crtWom))s++;
+    if(['Asia','London','New York'].includes(htf.crtSes))s++;
   }
-  if(crt.tf==='1w'){
-    if(['Mon','Tue','Wed'].includes(crt.crtDow)) s+=1;
-    if(crt.type==='wick') s+=1;
+  if(htf.tf==='1w'){
+    if(['Mon','Tue','Wed'].includes(htf.crtDow))s++;
+    if(['London','New York'].includes(htf.crtSes))s++;
   }
-  if(crt.tf==='1d'){
-    if(['London','New York'].includes(crt.crtSession)) s+=1;
-    if(crt.type==='wick') s+=1;
+  if(htf.tf==='1d'){
+    if(['London','New York'].includes(htf.crtSes))s+=2;
+    else if(htf.crtSes==='Asia')s++;
   }
   // Entry session
-  m+=1; if(['London','New York'].includes(entryCtx.session)) s+=1;
+  m+=1;if(['London','New York'].includes(entryCtx.ses))s++;
   return{s,m};
 }
 
@@ -302,193 +371,147 @@ async function run(){
   document.getElementById('main').innerHTML='<div id="sl" class="status loading">Starting…</div>';
 
   try{
-    const sym       =document.getElementById('sym').value;
-    const entryTf   =document.getElementById('entryTf').value;
-    const dailyLimit=parseInt(document.getElementById('dailyLimit').value)||500;
-    const entryLimit=parseInt(document.getElementById('entryLimit').value)||2000;
-    const entryWin  =parseInt(document.getElementById('entryWindow').value)||5;
-    const minDel    =parseInt(document.getElementById('minDel').value)||75;
+    const sym    =document.getElementById('sym').value;
+    const etf    =document.getElementById('etf').value;
+    const dlim   =parseInt(document.getElementById('dlim').value)||500;
+    const elim   =parseInt(document.getElementById('elim').value)||2000;
+    const ewin   =parseInt(document.getElementById('ewin').value)||7;
+    const capLoss=parseFloat(document.getElementById('capLoss').value)||5;
+    const mdel   =parseInt(document.getElementById('mdel').value)||50;
 
-    // ── Fetch all timeframes
     const data={};
-    for(const [tf,lim] of [['1M',120],['1w',200],['1d',dailyLimit]]){
+    for(const [tf,lim] of [['1M',120],['1w',200],['1d',dlim]]){
       setS('loading',`Fetching ${tf}…`);
       data[tf]=await fetch0(sym,tf,lim);
     }
-    // Build quarterly candles from monthly (group every 3 months)
-    setS('loading','Building quarterly candles from monthly…');
-    const quarterly=[];
-    const monthly=data['1M'];
-    for(let i=0;i+2<monthly.length;i+=3){
-      const slice=monthly.slice(i,i+3);
-      quarterly.push({
-        ts:slice[0].ts,
-        o:slice[0].o,
-        h:Math.max(...slice.map(c=>c.h)),
-        l:Math.min(...slice.map(c=>c.l)),
-        c:slice[slice.length-1].c,
-        v:slice.reduce((s,c)=>s+c.v,0)
-      });
-    }
-    data['3M']=quarterly;
-    setS('loading',`Fetching ${entryTf} entry candles…`);
-    const entryCandles=await fetch0(sym,entryTf,entryLimit);
+    setS('loading',`Fetching ${etf} candles…`);
+    const eCandles=await fetch0(sym,etf,elim);
 
-    setS('loading','Detecting FVGs on daily…');
-    const dailyFVGs=detectFVGs(data['1d']);
+    setS('loading','Detecting FVGs and OBs on daily…');
+    const dFVGs=detectFVGs(data['1d']);
+    const dOBs =detectOBs(data['1d']);
 
     setS('loading','Running backtest…');
 
     const results=[];
-    const dailyArr=data['1d'];
-    const entryMs=entryTf==='4h'?4*3600*1000:3600*1000;
-    const windowMs=entryWin*24*3600*1000;
+    const dArr=data['1d'];
+    const winMs=ewin*24*3600*1000;
+    const eMs=etf==='4h'?4*3600*1000:3600*1000;
 
-    // ── For each daily candle, check if it forms a CRT signal
-    // AND a dominant HTF CRT is already active
-    for(let i=1;i<dailyArr.length-1;i++){
-      const prevD=dailyArr[i-1];
-      const curD =dailyArr[i];
+    for(let i=1;i<dArr.length-1;i++){
+      const prev=dArr[i-1],cur=dArr[i];
 
-      // Get dominant HTF CRT at the close of this daily candle
-      const htf=dominantCRT(curD.ts, data);
+      // Get dominant HTF CRT at close of this daily candle
+      const htf=getDominantCRT(cur.ts,data);
       if(!htf) continue;
 
-      // Daily candle must align with HTF bias direction
-      // Bullish HTF → look for daily lows being set (price coming down to a level)
-      // Bearish HTF → look for daily highs being set (price coming up to a level)
-      // The daily candle itself forms a CRT in the same direction
-      const dailySig=crtSig(prevD,curD);
-      if(!dailySig||dailySig.dir!==htf.dir) continue;
+      // Daily candle must form CRT in same direction as HTF
+      const dSig=crtSig(prev,cur);
+      if(!dSig||dSig.dir!==htf.dir) continue;
 
-      // The daily manipulation level
-      const dailyManipLevel=htf.dir==='BULL'?prevD.l:prevD.h;
-      const dailyTarget    =htf.dir==='BULL'?prevD.h:prevD.l;
-      const dailyRange     =prevD.h-prevD.l;
+      // Daily manipulation level
+      const dailyLevel=htf.dir==='BEAR'?prev.h:prev.l;
 
-      // Find FVG on daily at this manipulation level
-      const fvg=nearestFVG(dailyFVGs,dailyManipLevel,htf.dir,curD.ts,data['1d']);
+      // Find best entry: OB > FVG > Raw
+      const{entryPrice,entryType,fvg,ob}=findEntry(
+        htf.dir,dailyLevel,cur.ts,dFVGs,dOBs,dArr,i
+      );
 
-      // Entry: FVG midpoint if available, else manipulation level itself
-      const entryPrice=fvg?fvg.mid:dailyManipLevel;
+      // ── Stop Loss: sized by capital risk (5% max loss)
+      // Stop is placed at the daily wick extreme + small buffer
+      // Position size = (capital * capLoss%) / stopDist
+      // We just measure the stop distance as % of entry for R:R calculation
+      const wickExtreme=htf.dir==='BEAR'?cur.h:cur.l;
+      const rawStopDist=Math.abs(entryPrice-wickExtreme);
+      // Capital-based SL: if rawStopDist > capLoss% of entry, use capLoss% as max
+      const maxStopDist=entryPrice*(capLoss/100);
+      const stopDist=Math.min(rawStopDist,maxStopDist);
+      const stopPrice=htf.dir==='BEAR'
+        ?entryPrice+stopDist
+        :entryPrice-stopDist;
 
-      // Stop: beyond HTF wick extreme + 0.1% buffer
-      const buf=dailyManipLevel*0.001;
-      const stopPrice=htf.dir==='BULL'
-        ?Math.min(curD.l,htf.wickLow)-buf
-        :Math.max(curD.h,htf.wickHigh)+buf;
-
-      const stopDist=Math.abs(entryPrice-stopPrice);
       if(stopDist<=0) continue;
 
       // Targets
-      // Partial: 50% of daily range from manipulation level
-      const partial50=htf.dir==='BULL'
-        ?dailyManipLevel+(dailyRange*0.5)
-        :dailyManipLevel-(dailyRange*0.5);
-
-      // Full: opposite daily extreme
-      const fullTarget=dailyTarget;
-
-      // HTF full target: opposite of HTF range
-      const htfTarget=htf.target;
-
+      const partial50=htf.partial50;
+      const fullTarget=htf.htfTarget;
       const rr50  =Math.abs(partial50-entryPrice)/stopDist;
       const rrFull=Math.abs(fullTarget-entryPrice)/stopDist;
-      const rrHTF =Math.abs(htfTarget-entryPrice)/stopDist;
 
-      // ── Find entry candle: price reaches entryPrice within window after daily CRT
-      const windowEnd=curD.ts+windowMs;
-      const windowCandles=entryCandles.filter(c=>c.ts>=curD.ts&&c.ts<=windowEnd);
-
-      let entryCandle=null;
-      for(const ec of windowCandles){
-        const reached=htf.dir==='BULL'?ec.l<=entryPrice:ec.h>=entryPrice;
-        if(reached){entryCandle=ec;break;}
+      // ── Find entry candle in ETF: price must reach entryPrice within window
+      const winEnd=cur.ts+winMs;
+      const winCandles=eCandles.filter(c=>c.ts>=cur.ts&&c.ts<=winEnd);
+      let eCandle=null;
+      for(const ec of winCandles){
+        const reached=htf.dir==='BEAR'?ec.h>=entryPrice:ec.l<=entryPrice;
+        if(reached){eCandle=ec;break;}
       }
-      if(!entryCandle) continue;
+      if(!eCandle) continue;
 
-      const ectx=tctx(entryCandle.ts);
-      const{s,m}=score(htf,ectx);
+      const ectx=tctx(eCandle.ts);
+      const{s,m}=calcScore(htf,ectx);
 
-      // ── Measure delivery from entry candle forward
-      const eIdx=entryCandles.findIndex(c=>c.ts===entryCandle.ts);
-      const fwd=entryCandles.slice(eIdx,eIdx+300);
-
-      let hit50=false,hitFull=false,hitHTF=false,hitStop=false,hitStopFirst=false;
-      let bestMoved=0;
+      // ── Measure delivery
+      const eIdx=eCandles.findIndex(c=>c.ts===eCandle.ts);
+      const fwd=eCandles.slice(eIdx,eIdx+500);
+      let hit50=false,hitFull=false,hitStop=false,hitStopFirst=false,bestMoved=0;
 
       for(const fc of fwd){
-        const moved=htf.dir==='BULL'?(fc.h-entryPrice):(entryPrice-fc.l);
+        const moved=htf.dir==='BEAR'?(entryPrice-fc.l):(fc.h-entryPrice);
         bestMoved=Math.max(bestMoved,moved);
-
-        if(htf.dir==='BULL'){
-          if(!hitStop&&fc.l<=stopPrice){hitStop=true;if(!hit50)hitStopFirst=true;}
-          if(fc.h>=partial50) hit50=true;
-          if(fc.h>=fullTarget) hitFull=true;
-          if(fc.h>=htfTarget)  hitHTF=true;
-        } else {
+        if(htf.dir==='BEAR'){
           if(!hitStop&&fc.h>=stopPrice){hitStop=true;if(!hit50)hitStopFirst=true;}
-          if(fc.l<=partial50) hit50=true;
-          if(fc.l<=fullTarget) hitFull=true;
-          if(fc.l<=htfTarget)  hitHTF=true;
+          if(fc.l<=partial50)hit50=true;
+          if(fc.l<=fullTarget)hitFull=true;
+        } else {
+          if(!hitStop&&fc.l<=stopPrice){hitStop=true;if(!hit50)hitStopFirst=true;}
+          if(fc.h>=partial50)hit50=true;
+          if(fc.h>=fullTarget)hitFull=true;
         }
       }
 
-      const to50  =Math.abs(partial50-entryPrice);
       const toFull=Math.abs(fullTarget-entryPrice);
-      const delPct=to50>0?Math.min(100,Math.round(bestMoved/toFull*100)):0;
+      const delPct=toFull>0?Math.min(100,Math.round(bestMoved/toFull*100)):0;
 
       let outcome='missed';
-      if(hitStopFirst)    outcome='stopped';
-      else if(hitHTF)     outcome='htf_target';
-      else if(hitFull)    outcome='full_target';
-      else if(hit50)      outcome='partial_50';
-      else if(delPct>=50) outcome='partial';
-      else                outcome='missed';
+      if(hitStopFirst)  outcome='stopped';
+      else if(hitFull)  outcome='full_target';
+      else if(hit50)    outcome='partial_50';
+      else if(delPct>=mdel) outcome='partial';
+      else              outcome='missed';
 
       results.push({
-        // HTF CRT info
-        htfTf:htf.tf, htfDir:htf.dir, htfType:htf.type,
+        htfTf:htf.tf,htfDir:htf.dir,htfType:htf.type,
         htfTs:htf.crtTs,
-        // TIME OF MANIPULATION CANDLE
-        crtSession:htf.crtSession, crtDow:htf.crtDow,
-        crtWom:htf.crtWom, crtMoy:htf.crtMoy,
-        // Daily CRT info
-        dailyTs:curD.ts,
-        dailyType:dailySig.type,
-        dailyManipLevel,
-        // FVG
-        hasFVG:!!fvg, fvgTested:fvg?fvg.tested:null,
-        // Entry
-        entryTs:entryCandle.ts,
-        entrySession:ectx.session, entryDow:ectx.dow,
-        entryWom:ectx.wom,
-        entryPrice, stopPrice, stopDist,
-        partial50, fullTarget, htfTarget,
-        rr50:rr50.toFixed(1),
-        rrFull:rrFull.toFixed(1),
-        rrHTF:rrHTF.toFixed(1),
-        // Result
-        hit50,hitFull,hitHTF,hitStop,hitStopFirst,
-        delPct, outcome, score:s, scoreMax:m,
+        crtSes:htf.crtSes,crtDow:htf.crtDow,crtWom:htf.crtWom,crtMoy:htf.crtMoy,
+        dailyTs:cur.ts,dailyType:dSig.type,dailyLevel,
+        entryTs:eCandle.ts,entryPrice,entryType,
+        entrySession:ectx.ses,entryDow:ectx.dow,entryWom:ectx.wom,
+        stopPrice,stopDist,
+        partial50,fullTarget,
+        rr50:rr50.toFixed(1),rrFull:rrFull.toFixed(1),
+        hasFVG:!!fvg,fvgTested:fvg?fvg.tested:null,
+        hasOB:!!ob,
+        hit50,hitFull,hitStop,hitStopFirst,
+        delPct,outcome,score:s,scoreMax:m,
       });
     }
 
-    render(results,sym,entryTf);
+    renderResults(results,sym,etf,capLoss);
   }catch(e){
-    console.error(e);
-    setS('error',`Error: ${e.message}`);
+    console.error(e);setS('error',`Error: ${e.message}`);
   }
   btn.disabled=false;btn.textContent='Run Backtest';
 }
 
-function render(R,sym,entryTf){
+function renderResults(R,sym,etf,capLoss){
   const n=R.length;
   if(!n){
     document.getElementById('main').innerHTML=`
-      <div id="sl" class="status done">✓ Done · No signals</div>
-      <div class="empty"><div class="ei">◈</div><div class="et">No setups found</div><div class="es">Try increasing candle limits or entry window</div></div>`;
+      <div id="sl" class="status done">✓ Done</div>
+      <div class="empty"><div style="font-size:32px;opacity:.3">◈</div>
+      <div style="font-size:13px">No setups found</div>
+      <div style="font-size:11px;opacity:.6">Try increasing candle limits or entry window</div></div>`;
     return;
   }
 
@@ -496,50 +519,41 @@ function render(R,sym,entryTf){
   const bears =R.filter(r=>r.htfDir==='BEAR');
   const wicks =R.filter(r=>r.htfType==='wick');
   const stops =R.filter(r=>r.outcome==='stopped');
-  const htfT  =R.filter(r=>r.outcome==='htf_target');
   const fullT =R.filter(r=>r.outcome==='full_target');
   const p50   =R.filter(r=>r.outcome==='partial_50');
+  const part  =R.filter(r=>r.outcome==='partial');
   const missed=R.filter(r=>r.outcome==='missed');
-  const withFVG=R.filter(r=>r.hasFVG);
-  const freshFVG=R.filter(r=>r.hasFVG&&!r.fvgTested);
-  const testedFVG=R.filter(r=>r.hasFVG&&r.fvgTested);
-  const hiScore=R.filter(r=>r.score>=4);
-  const winRate=n?Math.round((htfT.length+fullT.length+p50.length)/n*100):0;
-  const avgRR=n?(R.reduce((s,r)=>s+parseFloat(r.rrFull),0)/n).toFixed(1):0;
-
-  // Time distributions — MANIPULATION CANDLE TIME
-  const byCrtSession={},byCrtDow={},byCrtWom={},byCrtMoy={};
-  // Entry time
-  const byEntSes={},byEntDow={};
-  R.forEach(r=>{
-    byCrtSession[r.crtSession]=(byCrtSession[r.crtSession]||0)+1;
-    byCrtDow[r.crtDow]=(byCrtDow[r.crtDow]||0)+1;
-    byCrtWom[r.crtWom]=(byCrtWom[r.crtWom]||0)+1;
-    byCrtMoy[r.crtMoy]=(byCrtMoy[r.crtMoy]||0)+1;
-    byEntSes[r.entrySession]=(byEntSes[r.entrySession]||0)+1;
-    byEntDow[r.entryDow]=(byEntDow[r.entryDow]||0)+1;
-  });
-
-  // Delivery by HTF
-  const byHTF={};
-  R.forEach(r=>{
-    if(!byHTF[r.htfTf]) byHTF[r.htfTf]={n:0,del:0,wins:0};
-    byHTF[r.htfTf].n++;
-    byHTF[r.htfTf].del+=r.delPct;
-    if(['htf_target','full_target','partial_50'].includes(r.outcome)) byHTF[r.htfTf].wins++;
-  });
+  const fvgR  =R.filter(r=>r.hasFVG);
+  const obR   =R.filter(r=>r.hasOB);
+  const rawR  =R.filter(r=>r.entryType==='RAW');
+  const hiSc  =R.filter(r=>r.score>=4);
+  const winRate=n?Math.round((fullT.length+p50.length)/n*100):0;
+  const avgRR =n?(R.reduce((s,r)=>s+parseFloat(r.rrFull),0)/n).toFixed(1):0;
 
   const pct=x=>n?Math.round(x/n*100):0;
-  const mxCS=Math.max(...Object.values(byCrtSession),1);
-  const mxCD=Math.max(...Object.values(byCrtDow),1);
-  const mxCW=Math.max(...Object.values(byCrtWom),1);
-  const mxCM=Math.max(...Object.values(byCrtMoy),1);
-  const mxES=Math.max(...Object.values(byEntSes),1);
-  const mxED=Math.max(...Object.values(byEntDow),1);
+  const wr=arr=>arr.length?Math.round(arr.filter(r=>['full_target','partial_50'].includes(r.outcome)).length/arr.length*100):0;
 
-  const tfTag=tf=>tf==='3M'?'t3m':tf==='1M'?'t1m':tf==='1w'?'t1w':'t1d';
-  const outcomeTag=o=>o==='htf_target'||o==='full_target'?'tdel':o==='partial_50'?'tpar':o==='stopped'?'tstop':'tmis';
-  const outcomeLabel=o=>o.replace('_',' ');
+  // Time distributions
+  const bCS={},bCD={},bCW={},bCM={},bES={},bED={};
+  R.forEach(r=>{
+    bCS[r.crtSes]=(bCS[r.crtSes]||0)+1;
+    bCD[r.crtDow]=(bCD[r.crtDow]||0)+1;
+    bCW[r.crtWom]=(bCW[r.crtWom]||0)+1;
+    bCM[r.crtMoy]=(bCM[r.crtMoy]||0)+1;
+    bES[r.entrySession]=(bES[r.entrySession]||0)+1;
+    bED[r.entryDow]=(bED[r.entryDow]||0)+1;
+  });
+  const mCS=Math.max(...Object.values(bCS),1);
+  const mCD=Math.max(...Object.values(bCD),1);
+  const mCW=Math.max(...Object.values(bCW),1);
+  const mCM=Math.max(...Object.values(bCM),1);
+  const mES=Math.max(...Object.values(bES),1);
+  const mED=Math.max(...Object.values(bED),1);
+
+  const tfTag=tf=>tf==='1M'?'t1m':tf==='1w'?'t1w':'t1d';
+  const oTag=o=>o==='full_target'?'tdel':o==='partial_50'?'tpar':o==='stopped'?'tstop':o==='partial'?'tpar':'tmis';
+  const oLabel=o=>o.replace(/_/g,' ');
+  const etTag=t=>t==='FVG'?'tfvg':t==='OB'?'tob':'traw';
 
   const rows=[...R].slice(-60).reverse().map(r=>`
     <tr>
@@ -548,38 +562,31 @@ function render(R,sym,entryTf){
       <td>${fd(r.entryTs)}</td>
       <td><span class="tag ${r.htfDir==='BULL'?'tbull':'tbear'}">${r.htfDir}</span></td>
       <td><span class="tag ${tfTag(r.htfTf)}">${r.htfTf}</span></td>
-      <td><span class="tag ${r.htfType==='wick'?'twick':'tclose'}">${r.htfType}</span></td>
-      <td style="color:var(--muted)">${r.crtSession}</td>
-      <td style="color:var(--muted)">${r.crtDow}</td>
-      <td style="color:var(--muted)">${r.crtWom}</td>
-      <td style="color:var(--muted)">${r.crtMoy}</td>
-      <td style="color:var(--muted)">${r.entrySession}</td>
-      <td style="color:var(--accent)">${r.score}/${r.scoreMax}</td>
-      <td style="color:var(--muted)">${fp(r.entryPrice)}</td>
-      <td style="color:var(--muted)">${fp(r.stopPrice)}</td>
-      <td class="${parseFloat(r.rrFull)>=2?'bull':parseFloat(r.rrFull)>=1?'wc':'bear'}">${r.rrFull}R</td>
-      <td class="${parseFloat(r.rrHTF)>=3?'bull':parseFloat(r.rrHTF)>=1.5?'wc':'bear'}">${r.rrHTF}R</td>
+      <td><span class="tag ${r.htfType==='wick'?'twk':'tcl'}">${r.htfType}</span></td>
+      <td style="color:var(--mt)">${r.crtSes}</td>
+      <td style="color:var(--mt)">${r.crtDow}</td>
+      <td style="color:var(--mt)">${r.crtWom}</td>
+      <td style="color:var(--mt)">${r.crtMoy}</td>
+      <td style="color:var(--mt)">${r.entrySession}</td>
+      <td><span class="tag ${etTag(r.entryType)}">${r.entryType}</span></td>
+      <td style="color:var(--ac)">${r.score}/${r.scoreMax}</td>
+      <td style="color:var(--mt)">${fp(r.entryPrice)}</td>
+      <td style="color:var(--mt)">${fp(r.stopPrice)}</td>
+      <td class="${parseFloat(r.rrFull)>=3?'bull':parseFloat(r.rrFull)>=1.5?'wc':'bear'}">${r.rrFull}R</td>
       <td>
         <div class="db">
           <span class="dp" style="color:${dc(r.delPct)}">${r.delPct}%</span>
           <div class="mb"><div class="mf" style="width:${r.delPct}%;background:${dc(r.delPct)}"></div></div>
         </div>
       </td>
-      <td><span class="tag ${outcomeTag(r.outcome)}">${outcomeLabel(r.outcome)}</span></td>
+      <td><span class="tag ${oTag(r.outcome)}">${oLabel(r.outcome)}</span></td>
     </tr>`).join('');
 
-  const htfInsights=Object.entries(byHTF).map(([tf,d])=>`
-    <div class="ir">
-      <span class="il"><span class="tag ${tfTag(tf)}">${tf}</span> ${d.n} signals</span>
-      <span class="iv" style="color:${dc(Math.round(d.del/d.n))}">${Math.round(d.del/d.n)}% avg · ${Math.round(d.wins/d.n*100)}% win</span>
-    </div>`).join('');
-
   document.getElementById('main').innerHTML=`
-    <div id="sl" class="status done">✓ ${n} setups · ${sym} · ${entryTf} entry</div>
-
+    <div id="sl" class="status done">✓ ${n} setups · ${sym} · ${etf} entry · ${capLoss}% SL</div>
     <div class="tabs">
       <div class="tab active" id="tb1" onclick="st(1)">Summary</div>
-      <div class="tab" id="tb2" onclick="st(2)">Manipulation Time</div>
+      <div class="tab" id="tb2" onclick="st(2)">Manip Time</div>
       <div class="tab" id="tb3" onclick="st(3)">Insights</div>
       <div class="tab" id="tb4" onclick="st(4)">Signal Log</div>
     </div>
@@ -588,64 +595,71 @@ function render(R,sym,entryTf){
     <div class="tc active" id="tc1">
       <div class="cards">
         <div class="card"><div class="cl">Setups</div><div class="cv ac">${n}</div></div>
-        <div class="card"><div class="cl">Win Rate</div><div class="cv bull">${winRate}%</div><div class="cs">50%+full+HTF</div></div>
-        <div class="card"><div class="cl">HTF Target</div><div class="cv bull">${htfT.length}</div><div class="cs">${pct(htfT.length)}%</div></div>
+        <div class="card"><div class="cl">Win Rate</div><div class="cv bull">${winRate}%</div><div class="cs">full+50%</div></div>
         <div class="card"><div class="cl">Full Target</div><div class="cv bull">${fullT.length}</div><div class="cs">${pct(fullT.length)}%</div></div>
         <div class="card"><div class="cl">Partial 50%</div><div class="cv wc">${p50.length}</div><div class="cs">${pct(p50.length)}%</div></div>
+        <div class="card"><div class="cl">Partial</div><div class="cv wc">${part.length}</div><div class="cs">${pct(part.length)}%</div></div>
         <div class="card"><div class="cl">Stopped</div><div class="cv bear">${stops.length}</div><div class="cs">${pct(stops.length)}%</div></div>
         <div class="card"><div class="cl">Missed</div><div class="cv bear">${missed.length}</div><div class="cs">${pct(missed.length)}%</div></div>
-        <div class="card"><div class="cl">Avg RR</div><div class="cv ac">${avgRR}R</div><div class="cs">to daily target</div></div>
-        <div class="card"><div class="cl">Bullish</div><div class="cv bull">${bulls.length}</div><div class="cs">${pct(bulls.length)}%</div></div>
-        <div class="card"><div class="cl">Bearish</div><div class="cv bear">${bears.length}</div><div class="cs">${pct(bears.length)}%</div></div>
+        <div class="card"><div class="cl">Avg RR</div><div class="cv ac">${avgRR}R</div></div>
+        <div class="card"><div class="cl">Bull</div><div class="cv bull">${bulls.length}</div><div class="cs">${pct(bulls.length)}%</div></div>
+        <div class="card"><div class="cl">Bear</div><div class="cv bear">${bears.length}</div><div class="cs">${pct(bears.length)}%</div></div>
         <div class="card"><div class="cl">Wick CRT</div><div class="cv wc">${wicks.length}</div><div class="cs">Higher weight</div></div>
-        <div class="card"><div class="cl">With FVG</div><div class="cv ac">${withFVG.length}</div><div class="cs">${pct(withFVG.length)}%</div></div>
+        <div class="card"><div class="cl">High Score</div><div class="cv ac">${hiSc.length}</div><div class="cs">≥4 pts</div></div>
       </div>
       <div>
-        <div class="st">Entry Session Distribution</div>
-        <div class="tg">
-          <div class="tb"><div class="tt">Entry Session</div>${bar(byEntSes,mxES)}</div>
-          <div class="tb"><div class="tt">Entry Day of Week</div>${bar(byEntDow,mxED)}</div>
+        <div class="st">Entry Distribution</div>
+        <div class="g4">
+          <div class="tb"><div class="tt">Entry Session</div>${bar(bES,mES)}</div>
+          <div class="tb"><div class="tt">Entry Day</div>${bar(bED,mED)}</div>
+          <div class="tb"><div class="tt">Entry Type</div>
+            ${[['FVG',fvgR.length],['OB',obR.length],['RAW',rawR.length]].map(([l,v])=>`
+            <div class="br"><span class="bl">${l}</span>
+            <div class="btr"><div class="bf" style="width:${Math.round(v/n*100)}%"></div></div>
+            <span class="bc">${v}</span></div>`).join('')}
+          </div>
+          <div class="tb"><div class="tt">HTF Timeframe</div>
+            ${[['1M',R.filter(r=>r.htfTf==='1M').length],['1w',R.filter(r=>r.htfTf==='1w').length],['1d',R.filter(r=>r.htfTf==='1d').length]].map(([l,v])=>`
+            <div class="br"><span class="bl">${l}</span>
+            <div class="btr"><div class="bf" style="width:${Math.round(v/n*100)}%"></div></div>
+            <span class="bc">${v}</span></div>`).join('')}
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- MANIPULATION TIME -->
+    <!-- MANIP TIME -->
     <div class="tc" id="tc2">
-      <div class="st">When Did the HTF Manipulation Form?</div>
-      <div class="tg">
-        <div class="tb"><div class="tt">Session</div>${bar(byCrtSession,mxCS)}</div>
-        <div class="tb"><div class="tt">Day of Week</div>${bar(byCrtDow,mxCD)}</div>
-        <div class="tb"><div class="tt">Week of Month</div>${bar(byCrtWom,mxCW)}</div>
-        <div class="tb"><div class="tt">Month of Year</div>${bar(byCrtMoy,mxCM)}</div>
+      <div class="st">When Did the HTF Manipulation Candle Form?</div>
+      <div class="g4">
+        <div class="tb"><div class="tt">Session</div>${bar(bCS,mCS)}</div>
+        <div class="tb"><div class="tt">Day of Week</div>${bar(bCD,mCD)}</div>
+        <div class="tb"><div class="tt">Week of Month</div>${bar(bCW,mCW)}</div>
+        <div class="tb"><div class="tt">Month of Year</div>${bar(bCM,mCM)}</div>
       </div>
     </div>
 
     <!-- INSIGHTS -->
     <div class="tc" id="tc3">
-      <div class="ig">
-        <div class="ib">
-          <div class="it">By HTF Timeframe</div>
-          ${htfInsights}
+      <div class="g2">
+        <div class="ib"><div class="it">Entry Type vs Win Rate</div>
+          <div class="ir"><span class="il">FVG entry (${fvgR.length})</span><span class="iv" style="color:var(--bull)">${wr(fvgR)}%</span></div>
+          <div class="ir"><span class="il">OB entry (${obR.length})</span><span class="iv" style="color:var(--wk)">${wr(obR)}%</span></div>
+          <div class="ir"><span class="il">Raw level (${rawR.length})</span><span class="iv" style="color:var(--mt)">${wr(rawR)}%</span></div>
         </div>
-        <div class="ib">
-          <div class="it">FVG State vs Outcome</div>
-          <div class="ir"><span class="il">Fresh FVG signals</span><span class="iv">${freshFVG.length}</span></div>
-          <div class="ir"><span class="il">Tested FVG signals</span><span class="iv">${testedFVG.length}</span></div>
-          <div class="ir"><span class="il">Fresh win rate</span><span class="iv" style="color:var(--bull)">${freshFVG.length?Math.round(freshFVG.filter(r=>['htf_target','full_target','partial_50'].includes(r.outcome)).length/freshFVG.length*100):0}%</span></div>
-          <div class="ir"><span class="il">Tested win rate</span><span class="iv" style="color:var(--wick)">${testedFVG.length?Math.round(testedFVG.filter(r=>['htf_target','full_target','partial_50'].includes(r.outcome)).length/testedFVG.length*100):0}%</span></div>
+        <div class="ib"><div class="it">Wick vs Close CRT</div>
+          <div class="ir"><span class="il">Wick win rate (${wicks.length})</span><span class="iv" style="color:var(--bull)">${wr(wicks)}%</span></div>
+          <div class="ir"><span class="il">Close win rate (${R.filter(r=>r.htfType==='close').length})</span><span class="iv" style="color:var(--wk)">${wr(R.filter(r=>r.htfType==='close'))}%</span></div>
         </div>
-        <div class="ib">
-          <div class="it">Wick vs Close CRT</div>
-          <div class="ir"><span class="il">Wick win rate</span><span class="iv" style="color:var(--bull)">${wicks.length?Math.round(wicks.filter(r=>['htf_target','full_target','partial_50'].includes(r.outcome)).length/wicks.length*100):0}%</span></div>
-          <div class="ir"><span class="il">Close win rate</span><span class="iv" style="color:var(--wick)">${R.filter(r=>r.htfType==='close').length?Math.round(R.filter(r=>r.htfType==='close'&&['htf_target','full_target','partial_50'].includes(r.outcome)).length/R.filter(r=>r.htfType==='close').length*100):0}%</span></div>
-          <div class="ir"><span class="il">Wick count</span><span class="iv">${wicks.length}</span></div>
-          <div class="ir"><span class="il">Close count</span><span class="iv">${R.filter(r=>r.htfType==='close').length}</span></div>
+        <div class="ib"><div class="it">By HTF Timeframe</div>
+          ${['1M','1w','1d'].map(tf=>{const s=R.filter(r=>r.htfTf===tf);return s.length?`
+          <div class="ir"><span class="il"><span class="tag ${tfTag(tf)}">${tf}</span> ${s.length} signals</span>
+          <span class="iv" style="color:var(--bull)">${wr(s)}% win</span></div>`:''}).join('')}
         </div>
-        <div class="ib">
-          <div class="it">High Score Setups (≥4)</div>
-          <div class="ir"><span class="il">Count</span><span class="iv">${hiScore.length} (${pct(hiScore.length)}%)</span></div>
-          <div class="ir"><span class="il">Win rate</span><span class="iv" style="color:var(--bull)">${hiScore.length?Math.round(hiScore.filter(r=>['htf_target','full_target','partial_50'].includes(r.outcome)).length/hiScore.length*100):0}%</span></div>
-          <div class="ir"><span class="il">Avg RR</span><span class="iv">${hiScore.length?(hiScore.reduce((s,r)=>s+parseFloat(r.rrFull),0)/hiScore.length).toFixed(1):0}R</span></div>
+        <div class="ib"><div class="it">High Score (≥4) vs All</div>
+          <div class="ir"><span class="il">High score win rate</span><span class="iv" style="color:var(--bull)">${wr(hiSc)}%</span></div>
+          <div class="ir"><span class="il">All setups win rate</span><span class="iv" style="color:var(--wk)">${winRate}%</span></div>
+          <div class="ir"><span class="il">High score avg RR</span><span class="iv">${hiSc.length?(hiSc.reduce((s,r)=>s+parseFloat(r.rrFull),0)/hiSc.length).toFixed(1):0}R</span></div>
         </div>
       </div>
     </div>
@@ -653,20 +667,16 @@ function render(R,sym,entryTf){
     <!-- SIGNAL LOG -->
     <div class="tc" id="tc4">
       <div class="st">Last 60 Setups</div>
-      <div class="tw">
-        <table>
-          <thead><tr>
-            <th>HTF CRT</th><th>Daily CRT</th><th>Entry</th>
-            <th>Dir</th><th>HTF</th><th>Type</th>
-            <th>CRT Session</th><th>CRT DoW</th><th>CRT WoM</th><th>CRT Month</th>
-            <th>Entry Session</th><th>Score</th>
-            <th>Entry $</th><th>Stop $</th>
-            <th>RR Daily</th><th>RR HTF</th>
-            <th>Delivery</th><th>Outcome</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <div class="tw"><table>
+        <thead><tr>
+          <th>HTF CRT</th><th>Daily CRT</th><th>Entry</th>
+          <th>Dir</th><th>HTF</th><th>Type</th>
+          <th>CRT Ses</th><th>CRT DoW</th><th>CRT WoM</th><th>CRT Month</th>
+          <th>Entry Ses</th><th>Entry Type</th><th>Score</th>
+          <th>Entry $</th><th>Stop $</th><th>RR</th><th>Delivery</th><th>Outcome</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
     </div>
   `;
   st(1);
@@ -676,8 +686,7 @@ function st(n){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('active'));
   const t=document.getElementById(`tb${n}`),c=document.getElementById(`tc${n}`);
-  if(t)t.classList.add('active');
-  if(c)c.classList.add('active');
+  if(t)t.classList.add('active');if(c)c.classList.add('active');
 }
 </script>
 </body>
