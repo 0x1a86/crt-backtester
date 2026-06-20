@@ -201,44 +201,50 @@ function detectOBs(candles){
   const out=[];
   for(let i=1;i<candles.length;i++){
     const cur=candles[i];
-    // Bearish OB candidate: candle that took out a high (high > prev high)
-    // then gets engulfed by a subsequent bearish candle
+
+    // ── Bearish OB: candle liquidated a high (took above prev high)
+    // then engulfed by subsequent candle
     if(cur.h>candles[i-1].h){
-      // Look ahead for engulfing candle
       for(let j=i+1;j<Math.min(i+5,candles.length);j++){
         const nx=candles[j];
-        // Engulfed: subsequent candle's range fully covers OB candle
         if(nx.h>=cur.h&&nx.l<=cur.l){
-          // OB type: bearish (liquidated high, now sells)
+          // Long wick = upper wick > body → entry at 50% of wick-to-open
+          // Thick body = body >= wick → entry at 50% of open-to-midpoint
+          const upperWick=cur.h-Math.max(cur.o,cur.c);
           const bodySize=Math.abs(cur.c-cur.o);
-          const wickSize=cur.h-Math.max(cur.o,cur.c);
-          const isLongWick=wickSize>bodySize;
-          // Entry: thick body = high/low midpoint; long wick = wick-to-open 50%
+          const isLongWick=upperWick>bodySize;
+          const obOpen=Math.max(cur.o,cur.c); // open of OB (higher of o/c for bearish)
           const entryPrice=isLongWick
-            ?(cur.h+Math.max(cur.o,cur.c))/2  // wick to open midpoint
-            :(cur.h+cur.l)/2;                  // full range midpoint
+            ?(cur.h+obOpen)/2          // 50% of wick to open
+            :(obOpen+(cur.h+cur.l)/2)/2; // 50% of open to midpoint
+          // Stop: above OB high
+          const stopRef=cur.h;
           out.push({type:'bear',ts:cur.ts,idx:i,
             high:cur.h,low:cur.l,open:cur.o,close:cur.c,
-            isLongWick,entryPrice,engulfIdx:j});
+            isLongWick,entryPrice,stopRef,engulfIdx:j});
           break;
         }
       }
     }
-    // Bullish OB candidate: candle that took out a low (low < prev low)
-    // then gets engulfed by a subsequent bullish candle
+
+    // ── Bullish OB: candle liquidated a low (took below prev low)
+    // then engulfed by subsequent candle
     if(cur.l<candles[i-1].l){
       for(let j=i+1;j<Math.min(i+5,candles.length);j++){
         const nx=candles[j];
         if(nx.h>=cur.h&&nx.l<=cur.l){
+          const lowerWick=Math.min(cur.o,cur.c)-cur.l;
           const bodySize=Math.abs(cur.c-cur.o);
-          const wickSize=Math.min(cur.o,cur.c)-cur.l;
-          const isLongWick=wickSize>bodySize;
+          const isLongWick=lowerWick>bodySize;
+          const obOpen=Math.min(cur.o,cur.c); // open of OB (lower of o/c for bullish)
           const entryPrice=isLongWick
-            ?(Math.min(cur.o,cur.c)+cur.l)/2   // wick to open midpoint
-            :(cur.h+cur.l)/2;
+            ?(cur.l+obOpen)/2          // 50% of wick to open
+            :(obOpen+(cur.h+cur.l)/2)/2; // 50% of open to midpoint
+          // Stop: below OB low
+          const stopRef=cur.l;
           out.push({type:'bull',ts:cur.ts,idx:i,
             high:cur.h,low:cur.l,open:cur.o,close:cur.c,
-            isLongWick,entryPrice,engulfIdx:j});
+            isLongWick,entryPrice,stopRef,engulfIdx:j});
           break;
         }
       }
@@ -248,19 +254,41 @@ function detectOBs(candles){
 }
 
 // ── Get dominant HTF CRT: Monthly → Weekly → Daily
-// Returns the most recent confirmed CRT signal at or before a given timestamp
-function getDominantCRT(ts,data){
+// Session is detected from 1H candles — find the hour the manipulation wick actually formed
+function getDominantCRT(ts,data,hourly){
   const order=['1M','1w','1d'];
   for(const tf of order){
     if(!data[tf]) continue;
     const arr=data[tf];
-    // Walk backwards to find most recent confirmed CRT
     for(let i=arr.length-1;i>=1;i--){
-      if(arr[i].ts>ts) continue; // not yet closed
+      if(arr[i].ts>ts) continue;
       const sig=crtSig(arr[i-1],arr[i]);
       if(!sig) continue;
-      const ctx=tctx(arr[i].ts);
-      // Determine manipulation level and target
+
+      // ── Find the 1H candle where the wick extreme was formed
+      // For bearish wick: find 1H candle with highest high inside this HTF candle period
+      // For bullish wick: find 1H candle with lowest low inside this HTF candle period
+      let wickTs=arr[i].ts; // fallback to HTF candle open
+      if(hourly&&hourly.length){
+        const htfStart=arr[i].ts;
+        // Approximate HTF candle duration
+        const tfMs=tf==='1M'?30*24*3600*1000:tf==='1w'?7*24*3600*1000:24*3600*1000;
+        const htfEnd=htfStart+tfMs;
+        const within1H=hourly.filter(h=>h.ts>=htfStart&&h.ts<htfEnd);
+        if(within1H.length){
+          if(sig.dir==='BEAR'){
+            // Wick is the high — find which 1H candle made the highest high
+            const extreme=within1H.reduce((best,h)=>h.h>best.h?h:best,within1H[0]);
+            wickTs=extreme.ts;
+          } else {
+            // Wick is the low — find which 1H candle made the lowest low
+            const extreme=within1H.reduce((best,h)=>h.l<best.l?h:best,within1H[0]);
+            wickTs=extreme.ts;
+          }
+        }
+      }
+
+      const ctx=tctx(wickTs);
       const manipLevel=sig.dir==='BEAR'?arr[i-1].h:arr[i-1].l;
       const htfTarget =sig.dir==='BEAR'?arr[i-1].l:arr[i-1].h;
       const rangeSize =arr[i-1].h-arr[i-1].l;
@@ -269,7 +297,7 @@ function getDominantCRT(ts,data){
         :manipLevel+(rangeSize*0.5);
       return{
         tf,dir:sig.dir,type:sig.type,
-        crtTs:arr[i].ts,
+        crtTs:arr[i].ts,wickTs,
         rangeHigh:arr[i-1].h,rangeLow:arr[i-1].l,
         wickHigh:arr[i].h,wickLow:arr[i].l,
         manipLevel,htfTarget,partial50,
@@ -387,6 +415,10 @@ async function run(){
     setS('loading',`Fetching ${etf} candles…`);
     const eCandles=await fetch0(sym,etf,elim);
 
+    // Fetch 1H candles for accurate wick session detection
+    setS('loading','Fetching 1H candles for wick timing…');
+    const hourly=etf==='1h'?eCandles:await fetch0(sym,'1h',Math.min(elim,3000));
+
     setS('loading','Detecting FVGs and OBs on daily…');
     const dFVGs=detectFVGs(data['1d']);
     const dOBs =detectOBs(data['1d']);
@@ -396,13 +428,12 @@ async function run(){
     const results=[];
     const dArr=data['1d'];
     const winMs=ewin*24*3600*1000;
-    const eMs=etf==='4h'?4*3600*1000:3600*1000;
 
     for(let i=1;i<dArr.length-1;i++){
       const prev=dArr[i-1],cur=dArr[i];
 
       // Get dominant HTF CRT at close of this daily candle
-      const htf=getDominantCRT(cur.ts,data);
+      const htf=getDominantCRT(cur.ts,data,hourly);
       if(!htf) continue;
 
       // Daily candle must form CRT in same direction as HTF
