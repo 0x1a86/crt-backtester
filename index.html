@@ -195,56 +195,74 @@ function fvgTested(fvg,candles){
   return false;
 }
 
-// ── Detect Orderblocks in candle array
-// OB = candle that liquidated a high/low AND is fully engulfed by a subsequent candle
+// ── Detect Orderblocks
+// Bearish OB: OHLC sequence — raids high, closes back down, then engulfed
+// Bullish OB: OLHC sequence — raids low, closes back up, then engulfed
+// Three subtypes per direction, all require full engulfment
 function detectOBs(candles){
   const out=[];
   for(let i=1;i<candles.length;i++){
     const cur=candles[i];
 
-    // ── Bearish OB: candle liquidated a high (took above prev high)
-    // then engulfed by subsequent candle
-    if(cur.h>candles[i-1].h){
-      for(let j=i+1;j<Math.min(i+5,candles.length);j++){
+    // ── BEARISH OB: OHLC
+    // Must raid above prev high AND close below own open
+    if(cur.h>candles[i-1].h && cur.c<cur.o){
+      for(let j=i+1;j<Math.min(i+6,candles.length);j++){
         const nx=candles[j];
-        if(nx.h>=cur.h&&nx.l<=cur.l){
-          // Long wick = upper wick > body → entry at 50% of wick-to-open
-          // Thick body = body >= wick → entry at 50% of open-to-midpoint
-          const upperWick=cur.h-Math.max(cur.o,cur.c);
-          const bodySize=Math.abs(cur.c-cur.o);
-          const isLongWick=upperWick>bodySize;
-          const obOpen=Math.max(cur.o,cur.c); // open of OB (higher of o/c for bearish)
-          const entryPrice=isLongWick
-            ?(cur.h+obOpen)/2          // 50% of wick to open
-            :(obOpen+(cur.h+cur.l)/2)/2; // 50% of open to midpoint
-          // Stop: above OB high
-          const stopRef=cur.h;
-          out.push({type:'bear',ts:cur.ts,idx:i,
+        if(nx.h>=cur.h && nx.l<=cur.l){
+          const upperWick=cur.h-cur.o;
+          const lowerWick=cur.c-cur.l;
+          const bodySize=cur.o-cur.c;
+          let obType,entryPrice;
+          if(bodySize>=upperWick && bodySize>=lowerWick){
+            // Type 1: Thick body — open to 50% of open→bodyMid
+            const bodyMid=(cur.o+cur.c)/2;
+            entryPrice=cur.o-((cur.o-bodyMid)*0.5);
+            obType='thick';
+          } else if(upperWick>=bodySize && upperWick>=lowerWick){
+            // Type 2: Long wick up (RJB) — open to 50% below open
+            entryPrice=cur.o-(bodySize*0.5);
+            obType='rjb';
+          } else {
+            // Type 3: Long wick down — 50% of wick-to-open
+            entryPrice=(cur.l+cur.o)/2;
+            obType='wick_down';
+          }
+          out.push({type:'bear',obType,ts:cur.ts,idx:i,
             high:cur.h,low:cur.l,open:cur.o,close:cur.c,
-            isLongWick,entryPrice,stopRef,engulfIdx:j});
+            entryPrice,stopRef:cur.h,engulfIdx:j});
           break;
         }
       }
     }
 
-    // ── Bullish OB: candle liquidated a low (took below prev low)
-    // then engulfed by subsequent candle
-    if(cur.l<candles[i-1].l){
-      for(let j=i+1;j<Math.min(i+5,candles.length);j++){
+    // ── BULLISH OB: OLHC
+    // Must raid below prev low AND close above own open
+    if(cur.l<candles[i-1].l && cur.c>cur.o){
+      for(let j=i+1;j<Math.min(i+6,candles.length);j++){
         const nx=candles[j];
-        if(nx.h>=cur.h&&nx.l<=cur.l){
-          const lowerWick=Math.min(cur.o,cur.c)-cur.l;
-          const bodySize=Math.abs(cur.c-cur.o);
-          const isLongWick=lowerWick>bodySize;
-          const obOpen=Math.min(cur.o,cur.c); // open of OB (lower of o/c for bullish)
-          const entryPrice=isLongWick
-            ?(cur.l+obOpen)/2          // 50% of wick to open
-            :(obOpen+(cur.h+cur.l)/2)/2; // 50% of open to midpoint
-          // Stop: below OB low
-          const stopRef=cur.l;
-          out.push({type:'bull',ts:cur.ts,idx:i,
+        if(nx.h>=cur.h && nx.l<=cur.l){
+          const lowerWick=cur.o-cur.l;
+          const upperWick=cur.h-cur.c;
+          const bodySize=cur.c-cur.o;
+          let obType,entryPrice;
+          if(bodySize>=lowerWick && bodySize>=upperWick){
+            // Type 1: Thick body
+            const bodyMid=(cur.o+cur.c)/2;
+            entryPrice=cur.o+((bodyMid-cur.o)*0.5);
+            obType='thick';
+          } else if(lowerWick>=bodySize && lowerWick>=upperWick){
+            // Type 2: Long lower wick (RJB)
+            entryPrice=cur.o+(bodySize*0.5);
+            obType='rjb';
+          } else {
+            // Type 3: Long upper wick — 50% of wick-to-open
+            entryPrice=(cur.h+cur.o)/2;
+            obType='wick_down';
+          }
+          out.push({type:'bull',obType,ts:cur.ts,idx:i,
             high:cur.h,low:cur.l,open:cur.o,close:cur.c,
-            isLongWick,entryPrice,stopRef,engulfIdx:j});
+            entryPrice,stopRef:cur.l,engulfIdx:j});
           break;
         }
       }
@@ -448,13 +466,17 @@ async function run(){
         htf.dir,dailyLevel,cur.ts,dFVGs,dOBs,dArr,i
       );
 
-      // ── Stop Loss: sized by capital risk (5% max loss)
-      // Stop is placed at the daily wick extreme + small buffer
-      // Position size = (capital * capLoss%) / stopDist
-      // We just measure the stop distance as % of entry for R:R calculation
-      const wickExtreme=htf.dir==='BEAR'?cur.h:cur.l;
-      const rawStopDist=Math.abs(entryPrice-wickExtreme);
-      // Capital-based SL: if rawStopDist > capLoss% of entry, use capLoss% as max
+      // ── Stop Loss
+      // OB entry: stop at OB stopRef (above OB high for bear, below OB low for bull)
+      // FVG/Raw entry: stop at daily wick extreme
+      // In all cases cap at capLoss% of capital
+      let rawStopRef;
+      if(entryType==='OB'&&ob){
+        rawStopRef=ob.stopRef; // above OB high (bear) or below OB low (bull)
+      } else {
+        rawStopRef=htf.dir==='BEAR'?cur.h:cur.l; // daily wick extreme
+      }
+      const rawStopDist=Math.abs(entryPrice-rawStopRef);
       const maxStopDist=entryPrice*(capLoss/100);
       const stopDist=Math.min(rawStopDist,maxStopDist);
       const stopPrice=htf.dir==='BEAR'
@@ -522,7 +544,7 @@ async function run(){
         partial50,fullTarget,
         rr50:rr50.toFixed(1),rrFull:rrFull.toFixed(1),
         hasFVG:!!fvg,fvgTested:fvg?fvg.tested:null,
-        hasOB:!!ob,
+        hasOB:!!ob,obType:ob?ob.obType:null,
         hit50,hitFull,hitStop,hitStopFirst,
         delPct,outcome,score:s,scoreMax:m,
       });
@@ -585,6 +607,7 @@ function renderResults(R,sym,etf,capLoss){
   const oTag=o=>o==='full_target'?'tdel':o==='partial_50'?'tpar':o==='stopped'?'tstop':o==='partial'?'tpar':'tmis';
   const oLabel=o=>o.replace(/_/g,' ');
   const etTag=t=>t==='FVG'?'tfvg':t==='OB'?'tob':'traw';
+  const obLabel=r=>r.hasOB&&r.obType?`OB:${r.obType}`:\'OB\';
 
   const rows=[...R].slice(-60).reverse().map(r=>`
     <tr>
