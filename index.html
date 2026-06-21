@@ -607,7 +607,7 @@ function renderResults(R,sym,etf,capLoss){
   const oTag=o=>o==='full_target'?'tdel':o==='partial_50'?'tpar':o==='stopped'?'tstop':o==='partial'?'tpar':'tmis';
   const oLabel=o=>o.replace(/_/g,' ');
   const etTag=t=>t==='FVG'?'tfvg':t==='OB'?'tob':'traw';
-  const obLabel=r=>r.hasOB&&r.obType?`OB:${r.obType}`:\'OB\';
+  const obLabel=r=>r.hasOB&&r.obType?`OB:${r.obType}`:'OB';
 
   const rows=[...R].slice(-60).reverse().map(r=>`
     <tr>
