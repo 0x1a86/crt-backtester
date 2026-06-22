@@ -278,7 +278,10 @@ function getDominantCRT(ts,data,hourly){
   for(const tf of order){
     if(!data[tf]) continue;
     const arr=data[tf];
-    for(let i=arr.length-1;i>=1;i--){
+    // Only use fully closed candles
+    // A candle is confirmed when its NEXT candle has already opened (arr[i+1].ts <= ts)
+    for(let i=arr.length-2;i>=1;i--){
+      if(!arr[i+1]||arr[i+1].ts>ts) continue; // next candle not yet open = still forming
       if(arr[i].ts>ts) continue;
       const sig=crtSig(arr[i-1],arr[i]);
       if(!sig) continue;
